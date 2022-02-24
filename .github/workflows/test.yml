@@ -1,0 +1,42 @@
+name: Test and build
+
+env:
+  SOURCE_BRANCH: "main"
+  PUBLISH_BRANCH: "gh-pages"
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Install
+      run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+    - name: Build
+      run: wasm-pack build
+    - name: Test
+      run: wasm-pack test --headless --firefox
+
+    - name: NPM install and build
+      run: |
+        cd www
+        npm install
+        npm run build
+
+    - name: Deploy to target branch
+      if: ${{ github.event_name == 'push' && github.ref == format('refs/heads/{0}', env.SOURCE_BRANCH) }}
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./www/dist
+        publish_branch: ${{ env.PUBLISH_BRANCH }}
+        force_orphan: true
